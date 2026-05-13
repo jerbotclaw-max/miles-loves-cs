@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Miles 💻 Computer Science @ Granada High</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Inter:wght@400;600;800&display=swap');
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #0a0a1a;
+            color: #e0e0e0;
+            overflow-x: hidden;
+        }
+
+        /* Matrix rain canvas */
+        #matrix-bg {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            z-index: 0;
+            opacity: 0.15;
+        }
+
+        .content {
+            position: relative;
+            z-index: 1;
+        }
+
+        /* Hero */
+        .hero {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 2rem;
+            background: radial-gradient(ellipse at center, rgba(0, 200, 100, 0.08) 0%, transparent 70%);
+        }
+
+        .hero h1 {
+            font-size: clamp(2.5rem, 8vw, 5rem);
+            font-weight: 800;
+            background: linear-gradient(135deg, #00ff88, #00ccff, #ff6600);
+            background-size: 200% 200%;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            animation: gradientShift 4s ease infinite;
+            margin-bottom: 0.5rem;
+        }
+
+        .hero .subtitle {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: clamp(1rem, 3vw, 1.4rem);
+            color: #00ff88;
+            margin-bottom: 1.5rem;
+        }
+
+        .hero .school {
+            font-size: 1.2rem;
+            color: #888;
+            margin-bottom: 2rem;
+        }
+
+        .typing-text {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: clamp(0.9rem, 2.5vw, 1.1rem);
+            color: #00ccff;
+            border-right: 2px solid #00ccff;
+            white-space: nowrap;
+            overflow: hidden;
+            animation: blink 0.7s step-end infinite;
+            max-width: 90vw;
+        }
+
+        @keyframes blink { 50% { border-color: transparent; } }
+        @keyframes gradientShift { 0%,100% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } }
+
+        /* Sections */
+        .section {
+            padding: 4rem 2rem;
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        .section h2 {
+            font-size: 2rem;
+            color: #00ff88;
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .card-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .card {
+            background: rgba(255,255,255,0.03);
+            border: 1px solid rgba(0, 255, 136, 0.15);
+            border-radius: 12px;
+            padding: 1.5rem;
+            transition: transform 0.3s, border-color 0.3s;
+        }
+
+        .card:hover {
+            transform: translateY(-4px);
+            border-color: #00ff88;
+        }
+
+        .card h3 {
+            color: #00ccff;
+            margin-bottom: 0.5rem;
+            font-size: 1.1rem;
+        }
+
+        .card p { color: #aaa; line-height: 1.6; }
+
+        /* Code block */
+        .code-block {
+            background: rgba(0, 255, 136, 0.05);
+            border: 1px solid rgba(0, 255, 136, 0.2);
+            border-radius: 12px;
+            padding: 1.5rem;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.9rem;
+            line-height: 1.8;
+            overflow-x: auto;
+            margin-top: 1rem;
+        }
+
+        .keyword { color: #ff6600; }
+        .string { color: #00ff88; }
+        .comment { color: #555; }
+        .func { color: #00ccff; }
+
+        /* Passion meter */
+        .passion-bar-container {
+            background: rgba(255,255,255,0.05);
+            border-radius: 20px;
+            overflow: hidden;
+            height: 30px;
+            margin: 1rem 0;
+        }
+
+        .passion-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #00ff88, #00ccff, #ff6600);
+            border-radius: 20px;
+            width: 0%;
+            animation: fillBar 2s ease-out 1s forwards;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            padding-right: 10px;
+            font-weight: 700;
+            font-size: 0.85rem;
+            color: #0a0a1a;
+        }
+
+        @keyframes fillBar { to { width: 100%; } }
+
+        /* Fun facts */
+        .fun-list {
+            list-style: none;
+            padding: 0;
+        }
+
+        .fun-list li {
+            padding: 0.8rem 0;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+            font-size: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .fun-list li:last-child { border-bottom: none; }
+
+        /* Footer */
+        footer {
+            text-align: center;
+            padding: 3rem 2rem;
+            color: #444;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8rem;
+        }
+
+        footer .heart { color: #ff6600; }
+
+        /* Floating particles */
+        .particle {
+            position: fixed;
+            width: 4px; height: 4px;
+            background: #00ff88;
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 0;
+            animation: float linear infinite;
+        }
+
+        @keyframes float {
+            0% { transform: translateY(100vh) rotate(0deg); opacity: 0; }
+            10% { opacity: 1; }
+            90% { opacity: 1; }
+            100% { transform: translateY(-100vh) rotate(720deg); opacity: 0; }
+        }
+    </style>
+</head>
+<body>
+    <canvas id="matrix-bg"></canvas>
+
+    <div class="content">
+        <!-- Hero -->
+        <section class="hero">
+            <h1>Miles</h1>
+            <div class="subtitle">&gt; Computer Science Enthusiast_</div>
+            <div class="school">🏫 Granada High School · Class of 2028</div>
+            <div class="typing-text" id="typing"></div>
+        </section>
+
+        <!-- Why CS -->
+        <section class="section">
+            <h2>💚 Why Computer Science?</h2>
+            <div class="passion-bar-container">
+                <div class="passion-bar">PASSION LEVEL: ∞</div>
+            </div>
+            <p style="color: #aaa; line-height: 1.8; margin-top: 1rem;">
+                Some kids play video games. Miles wants to know how they're built. 
+                From the logic gates on up, CS isn't just a class — it's how he sees the world. 
+                Every problem is a puzzle. Every bug is a mystery. Every solution is a rush.
+            </p>
+        </section>
+
+        <!-- Skills -->
+        <section class="section">
+            <h2>⚡ What Miles Dives Into</h2>
+            <div class="card-grid">
+                <div class="card">
+                    <h3>🐍 Python</h3>
+                    <p>First language love. Scripts, automations, and breaking things until they work.</p>
+                </div>
+                <div class="card">
+                    <h3>🌐 Web Dev</h3>
+                    <p>HTML, CSS, JavaScript — building things the world can see.</p>
+                </div>
+                <div class="card">
+                    <h3>🧠 Algorithms</h3>
+                    <p>Sorting, searching, graph traversal — the bread and butter of problem solving.</p>
+                </div>
+                <div class="card">
+                    <h3>🎮 Game Dev</h3>
+                    <p>Because if you love playing them, you should know how to make them.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Code -->
+        <section class="section">
+            <h2>🖥️ Miles's Daily Motivation</h2>
+            <div class="code-block">
+<span class="keyword">while</span> <span class="func">alive</span>() {
+    <span class="func">drink_coffee</span>();
+    <span class="func">write_code</span>();
+    <span class="func">debug_code</span>();
+    <span class="func">question_everything</span>();
+    <span class="comment">// TODO: sleep more</span>
+    <span class="keyword">if</span> (<span class="func">bug_found</span>()) {
+        <span class="func">fix_it</span>(); <span class="comment">// 99% of programming</span>
+    }
+}
+            </div>
+        </section>
+
+        <!-- Fun Facts -->
+        <section class="section">
+            <h2>🎯 Fun Facts</h2>
+            <ul class="fun-list">
+                <li>💻 Would rather debug than do pretty much anything else</li>
+                <li>📐 Math is actually fun when it's for a program</li>
+                <li>🔥 Has strong opinions on light mode vs dark mode</li>
+                <li>🚀 Plans to build something that changes the world (or at least breaks it in a cool way)</li>
+                <li>🧩 Granada High's CS scene is just the beginning</li>
+                <li>⚡ Faster at typing than at running the mile</li>
+            </ul>
+        </section>
+
+        <!-- Future -->
+        <section class="section" style="text-align: center;">
+            <h2 style="justify-content: center;">🚀 The Future</h2>
+            <p style="color: #aaa; line-height: 1.8; max-width: 600px; margin: 0 auto;">
+                Granada High is just chapter one. The plan? Keep learning, keep building, 
+                keep shipping. Whether it's AI, systems engineering, cybersecurity, or something 
+                that hasn't been invented yet — Miles is going to be there, writing the code.
+            </p>
+            <div style="margin-top: 2rem; font-family: 'JetBrains Mono', monospace; color: #00ff88; font-size: 1.2rem;">
+                &gt; <span id="future-typing"></span>_
+            </div>
+        </section>
+
+        <footer>
+            <p>Made with <span class="heart">❤️</span> by Jerbotclaw for Miles</p>
+            <p style="margin-top: 0.5rem;">© 2026 · keep building stuff · ship it · repeat</p>
+        </footer>
+    </div>
+
+    <script>
+        // Matrix rain
+        const canvas = document.getElementById('matrix-bg');
+        const ctx = canvas.getContext('2d');
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        const chars = '01アイウエオカキクケコMilesCS<>/{}();';
+        const fontSize = 14;
+        const columns = canvas.width / fontSize;
+        const drops = Array(Math.floor(columns)).fill(1);
+
+        function drawMatrix() {
+            ctx.fillStyle = 'rgba(10, 10, 26, 0.05)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = '#00ff88';
+            ctx.font = fontSize + 'px monospace';
+
+            for (let i = 0; i < drops.length; i++) {
+                const text = chars[Math.floor(Math.random() * chars.length)];
+                ctx.fillText(text, i * fontSize, drops[i] * fontSize);
+                if (drops[i] * fontSize > canvas.height && Math.random() > 0.975) drops[i] = 0;
+                drops[i]++;
+            }
+        }
+        setInterval(drawMatrix, 50);
+
+        window.addEventListener('resize', () => {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        });
+
+        // Typing effect
+        const phrases = [
+            'print("Hello, Granada High!")',
+            'if (passion > 9000) { build_amazing_things(); }',
+            'git commit -m "another day, another line of code"',
+            'while(!sleepy) { code_more(); } // still going...',
+            '// CS isn\'t just a class. It\'s a lifestyle.',
+            'console.log("Granada CS rocks!");',
+        ];
+
+        let phraseIndex = 0, charIndex = 0, isDeleting = false;
+        const typingEl = document.getElementById('typing');
+
+        function typeWriter() {
+            const current = phrases[phraseIndex];
+            typingEl.textContent = current.substring(0, charIndex);
+
+            if (!isDeleting && charIndex < current.length) {
+                charIndex++;
+                setTimeout(typeWriter, 60);
+            } else if (!isDeleting && charIndex === current.length) {
+                setTimeout(() => { isDeleting = true; typeWriter(); }, 2000);
+            } else if (isDeleting && charIndex > 0) {
+                charIndex--;
+                setTimeout(typeWriter, 30);
+            } else {
+                isDeleting = false;
+                phraseIndex = (phraseIndex + 1) % phrases.length;
+                setTimeout(typeWriter, 500);
+            }
+        }
+        typeWriter();
+
+        // Future typing
+        const futureEl = document.getElementById('future-typing');
+        const futureText = 'The best code is the code you haven't written yet.';
+        let fi = 0;
+        function typeFuture() {
+            if (fi < futureText.length) {
+                futureEl.textContent += futureText[fi];
+                fi++;
+                setTimeout(typeFuture, 50);
+            }
+        }
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(e => { if (e.isIntersecting) { typeFuture(); observer.disconnect(); } });
+        }, { threshold: 0.5 });
+        observer.observe(futureEl.parentElement);
+
+        // Floating particles
+        function createParticle() {
+            const p = document.createElement('div');
+            p.className = 'particle';
+            p.style.left = Math.random() * 100 + 'vw';
+            p.style.animationDuration = (Math.random() * 8 + 6) + 's';
+            p.style.opacity = Math.random() * 0.5 + 0.2;
+            const colors = ['#00ff88', '#00ccff', '#ff6600'];
+            p.style.background = colors[Math.floor(Math.random() * colors.length)];
+            document.body.appendChild(p);
+            setTimeout(() => p.remove(), 14000);
+        }
+        setInterval(createParticle, 800);
+    </script>
+</body>
+</html>
