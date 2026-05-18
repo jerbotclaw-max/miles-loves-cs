@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Flappy</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #0a0a0a; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; font-family: 'Courier New', monospace; color: #ff0; overflow: hidden; }
+canvas { border: 2px solid #ff0; }
+#score { position: fixed; top: 10px; left: 20px; font-size: 18px; }
+#msg { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); color: #ff0; font-size: 14px; text-align: center; pointer-events: none; opacity: 0; transition: opacity 0.5s; }
+#msg.show { opacity: 1; }
+#mute { position: fixed; top: 10px; right: 20px; background: none; border: 1px solid #ff0; color: #ff0; padding: 4px 10px; cursor: pointer; font-family: inherit; font-size: 14px; z-index: 20; }
+#start { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); color: #ff0; font-size: 24px; z-index: 15; }
+</style>
+</head>
+<body>
+<div id="score">Score: 0</div>
+<button id="mute">🔊</button>
+<div id="start">PRESS SPACE TO PLAY</div>
+<div id="msg"></div>
+<canvas id="c" width="400" height="600"></canvas>
+<script>
+const c = document.getElementById('c'), ctx = c.getContext('2d');
+let muted = false;
+document.getElementById('mute').onclick = () => { muted = !muted; document.getElementById('mute').textContent = muted ? '🔇' : '🔊'; };
+const audio = { play(n) { if (muted) return; new Audio('audio/' + n + '.mp3').play().catch(()=>{}); } };
+
+const W = 400, H = 600, GAP = 160, PIPE_W = 50, GRAVITY = 0.45, FLAP = -7.5;
+let bird, pipes, score, started = false, gameOver = false, msgTimer = 0, frameCount = 0;
+
+function showMsg(t, d=3000) {
+  const el = document.getElementById('msg'); el.textContent = t; el.classList.add('show');
+  clearTimeout(msgTimer); msgTimer = setTimeout(() => el.classList.remove('show'), d);
+}
+
+function init() {
+  bird = { x: 80, y: 300, vy: 0, r: 12 };
+  pipes = []; score = 0; gameOver = false; frameCount = 0;
+  document.getElementById('score').textContent = 'Score: 0';
+}
+
+function flap() { if (!started) { started = true; document.getElementById('start').style.display = 'none'; audio.play('flappy-start'); init(); } if (gameOver) init(); else bird.vy = FLAP; }
+
+document.addEventListener('keydown', e => { if (e.code === 'Space') { e.preventDefault(); flap(); } });
+c.addEventListener('click', flap);
+c.addEventListener('touchstart', e => { e.preventDefault(); flap(); });
+
+function update() {
+  if (!started || gameOver) return;
+  frameCount++;
+  bird.vy += GRAVITY; bird.y += bird.vy;
+  if (frameCount % 90 === 0) {
+    const top = 60 + Math.random() * (H - GAP - 120);
+    pipes.push({ x: W + 10, top, scored: false });
+  }
+  pipes.forEach(p => p.x -= 3);
+  pipes = pipes.filter(p => p.x + PIPE_W > -10);
+
+  for (let p of pipes) {
+    if (bird.x + bird.r > p.x && bird.x - bird.r < p.x + PIPE_W) {
+      if (bird.y - bird.r < p.top || bird.y + bird.r > p.top + GAP) {
+        gameOver = true;
+        audio.play('flappy-death');
+        showMsg('"Friction in product development"', 4000);
+        setTimeout(() => showMsg('"I\'m committed to removing barriers like this pipe"', 4000), 4200);
+        return;
+      }
+    }
+    if (!p.scored && p.x + PIPE_W < bird.x) {
+      p.scored = true; score++;
+      document.getElementById('score').textContent = 'Score: ' + score;
+      if (score % 10 === 0) showMsg('"I\'m committed to removing barriers like this pipe"', 3000);
+    }
+  }
+  if (bird.y > H || bird.y < 0) {
+    gameOver = true; audio.play('flappy-death');
+    showMsg('"Friction in product development"', 4000);
+  }
+}
+
+function draw() {
+  ctx.fillStyle = '#0a0a0a'; ctx.fillRect(0, 0, W, H);
+  if (!started) return;
+  // Pipes
+  pipes.forEach(p => {
+    ctx.fillStyle = '#aa0';
+    ctx.fillRect(p.x, 0, PIPE_W, p.top);
+    ctx.fillRect(p.x, p.top + GAP, PIPE_W, H - p.top - GAP);
+    ctx.strokeStyle = '#ff0'; ctx.lineWidth = 2;
+    ctx.strokeRect(p.x, 0, PIPE_W, p.top);
+    ctx.strokeRect(p.x, p.top + GAP, PIPE_W, H - p.top - GAP);
+  });
+  // Bird
+  ctx.fillStyle = '#ff0'; ctx.beginPath(); ctx.arc(bird.x, bird.y, bird.r, 0, Math.PI*2); ctx.fill();
+  ctx.strokeStyle = '#aa0'; ctx.lineWidth = 2; ctx.stroke();
+  // Eye
+  ctx.fillStyle = '#0a0a0a'; ctx.beginPath(); ctx.arc(bird.x + 4, bird.y - 3, 3, 0, Math.PI*2); ctx.fill();
+  if (gameOver) {
+    ctx.fillStyle = '#ff0'; ctx.font = '36px Courier New'; ctx.textAlign = 'center';
+    ctx.fillText('GAME OVER', W/2, H/2); ctx.font = '16px Courier New'; ctx.fillText('Press SPACE to restart', W/2, H/2 + 40);
+  }
+}
+
+function loop() { update(); draw(); requestAnimationFrame(loop); }
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>

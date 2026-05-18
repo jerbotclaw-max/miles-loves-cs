@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pong</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #0a0a0a; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; font-family: 'Courier New', monospace; color: #0f0; overflow: hidden; }
+canvas { border: 2px solid #0f0; }
+#ui { position: fixed; top: 10px; left: 0; right: 0; display: flex; justify-content: space-between; padding: 0 20px; z-index: 10; }
+#ui span { color: #0f0; font-size: 18px; }
+#msg { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); color: #0ff; font-size: 14px; text-align: center; pointer-events: none; opacity: 0; transition: opacity 0.5s; }
+#msg.show { opacity: 1; }
+#mute { position: fixed; top: 10px; right: 10px; background: none; border: 1px solid #0f0; color: #0f0; padding: 4px 10px; cursor: pointer; font-family: inherit; font-size: 14px; z-index: 20; }
+#start { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); color: #0f0; font-size: 24px; z-index: 15; cursor: pointer; }
+</style>
+</head>
+<body>
+<div id="ui"><span id="score">0 - 0</span></div>
+<button id="mute">🔊</button>
+<div id="start">PRESS SPACE TO PLAY</div>
+<div id="msg"></div>
+<canvas id="c" width="800" height="500"></canvas>
+<script>
+const c = document.getElementById('c'), ctx = c.getContext('2d');
+let muted = false;
+document.getElementById('mute').onclick = () => { muted = !muted; document.getElementById('mute').textContent = muted ? '🔇' : '🔊'; };
+
+const audio = {
+  play(name) { if (muted) return; const a = new Audio('audio/' + name + '.mp3'); a.play().catch(()=>{}); }
+};
+
+const W = 800, H = 500;
+let player = { y: 200, h: 80, w: 10, x: 20 }, ai = { y: 200, h: 80, w: 10, x: 770 };
+let ball = { x: 400, y: 250, vx: 4, vy: 3, r: 6 };
+let pScore = 0, aScore = 0, started = false, gameOver = false, msgTimer = 0;
+
+function showMsg(text, dur = 3000) {
+  const el = document.getElementById('msg');
+  el.textContent = text; el.classList.add('show');
+  clearTimeout(msgTimer);
+  msgTimer = setTimeout(() => el.classList.remove('show'), dur);
+}
+
+document.addEventListener('keydown', e => {
+  if (e.code === 'Space' && !started) {
+    started = true;
+    document.getElementById('start').style.display = 'none';
+    audio.play('pong-start');
+    showMsg('"Building connections one pixel at a time"');
+  }
+});
+
+let keys = {};
+document.addEventListener('keydown', e => keys[e.code] = true);
+document.addEventListener('keyup', e => keys[e.code] = false);
+
+function reset() {
+  ball.x = 400; ball.y = 250;
+  ball.vx = (Math.random() > 0.5 ? 1 : -1) * 4;
+  ball.vy = (Math.random() - 0.5) * 6;
+}
+
+function update() {
+  if (!started) return;
+  if (keys['ArrowUp']) player.y = Math.max(0, player.y - 6);
+  if (keys['ArrowDown']) player.y = Math.min(H - player.h, player.y + 6);
+  const mid = player.y + player.h / 2;
+  if (mid < ball.y - 20) ai.y += 4;
+  else if (mid > ball.y + 20) ai.y -= 4;
+  ai.y = Math.max(0, Math.min(H - ai.h, ai.y));
+
+  ball.x += ball.vx; ball.y += ball.vy;
+  if (ball.y - ball.r < 0 || ball.y + ball.r > H) ball.vy *= -1;
+  if (ball.x - ball.r < player.x + player.w && ball.y > player.y && ball.y < player.y + player.h) {
+    ball.vx = Math.abs(ball.vx) * 1.05; ball.vy += (ball.y - (player.y + player.h/2)) * 0.1;
+  }
+  if (ball.x + ball.r > ai.x && ball.y > ai.y && ball.y < ai.y + ai.h) {
+    ball.vx = -Math.abs(ball.vx) * 1.05; ball.vy += (ball.y - (ai.y + ai.h/2)) * 0.1;
+  }
+  if (ball.x < 0) { aScore++; document.getElementById('score').textContent = pScore + ' - ' + aScore; reset(); if (aScore >= 5) { gameOver = true; showMsg('"That\'s what happens when you don\'t iterate"', 5000); audio.play('pong-gameover'); } }
+  if (ball.x > W) { pScore++; document.getElementById('score').textContent = pScore + ' - ' + aScore; reset(); if (pScore >= 5) { gameOver = true; showMsg('You win! Mark would be proud... or concerned.', 5000); } }
+  if (Math.abs(ball.vx) > 12) ball.vx = 12 * Math.sign(ball.vx);
+}
+
+function draw() {
+  ctx.fillStyle = '#0a0a0a'; ctx.fillRect(0, 0, W, H);
+  ctx.setLineDash([8, 8]); ctx.strokeStyle = '#1a1a1a'; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(W/2, 0); ctx.lineTo(W/2, H); ctx.stroke(); ctx.setLineDash([]);
+  ctx.fillStyle = '#0f0'; ctx.fillRect(player.x, player.y, player.w, player.h);
+  ctx.fillRect(ai.x, ai.y, ai.w, ai.h);
+  ctx.beginPath(); ctx.arc(ball.x, ball.y, ball.r, 0, Math.PI*2); ctx.fill();
+}
+
+function loop() { update(); draw(); if (!gameOver) requestAnimationFrame(loop); }
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>

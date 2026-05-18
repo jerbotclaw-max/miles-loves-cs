@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Breakout</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #0a0a0a; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; font-family: 'Courier New', monospace; color: #f0f; overflow: hidden; }
+canvas { border: 2px solid #f0f; }
+#score { position: fixed; top: 10px; left: 20px; font-size: 18px; }
+#lives { position: fixed; top: 10px; right: 20px; font-size: 18px; }
+#msg { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); color: #f0f; font-size: 14px; text-align: center; pointer-events: none; opacity: 0; transition: opacity 0.5s; }
+#msg.show { opacity: 1; }
+#mute { position: fixed; top: 10px; right: 100px; background: none; border: 1px solid #f0f; color: #f0f; padding: 4px 10px; cursor: pointer; font-family: inherit; font-size: 14px; z-index: 20; }
+#start { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); color: #f0f; font-size: 24px; z-index: 15; }
+</style>
+</head>
+<body>
+<div id="score">Score: 0</div>
+<div id="lives">❤️❤️❤️</div>
+<button id="mute">🔊</button>
+<div id="start">PRESS SPACE TO PLAY</div>
+<div id="msg"></div>
+<canvas id="c" width="600" height="500"></canvas>
+<script>
+const c = document.getElementById('c'), ctx = c.getContext('2d');
+let muted = false;
+document.getElementById('mute').onclick = () => { muted = !muted; document.getElementById('mute').textContent = muted ? '🔇' : '🔊'; };
+const audio = { play(n) { if (muted) return; new Audio('audio/' + n + '.mp3').play().catch(()=>{}); } };
+
+const W = 600, H = 500;
+let paddle, ball, bricks, score, lives, started = false, gameOver = false, won = false, msgTimer = 0;
+
+function showMsg(t, d=3000) {
+  const el = document.getElementById('msg'); el.textContent = t; el.classList.add('show');
+  clearTimeout(msgTimer); msgTimer = setTimeout(() => el.classList.remove('show'), d);
+}
+
+function init() {
+  paddle = { x: 250, w: 80, h: 12, y: H - 30 };
+  ball = { x: 300, y: H - 50, vx: 4, vy: -4, r: 6 };
+  score = 0; lives = 3; gameOver = false; won = false;
+  bricks = [];
+  const colors = ['#f0f','#0ff','#0f0','#ff0','#f80','#f00'];
+  for (let r = 0; r < 6; r++) for (let col = 0; col < 10; col++)
+    bricks.push({ x: col * 58 + 10, y: r * 22 + 40, w: 54, h: 18, alive: true, color: colors[r], pts: (6-r)*10 });
+  document.getElementById('score').textContent = 'Score: 0';
+  document.getElementById('lives').textContent = '❤️'.repeat(3);
+}
+
+document.addEventListener('keydown', e => {
+  if (e.code === 'Space') {
+    if (!started) { started = true; document.getElementById('start').style.display = 'none'; audio.play('breakout-start'); showMsg('"Breaking through barriers is in our DNA"'); init(); }
+    else if (gameOver || won) init();
+  }
+});
+
+let keys = {};
+document.addEventListener('keydown', e => keys[e.code] = true);
+document.addEventListener('keyup', e => keys[e.code] = false);
+
+function update() {
+  if (!started || gameOver || won) return;
+  if (keys['ArrowLeft']) paddle.x = Math.max(0, paddle.x - 7);
+  if (keys['ArrowRight']) paddle.x = Math.min(W - paddle.w, paddle.x + 7);
+
+  ball.x += ball.vx; ball.y += ball.vy;
+  if (ball.x - ball.r < 0 || ball.x + ball.r > W) ball.vx *= -1;
+  if (ball.y - ball.r < 0) ball.vy *= -1;
+  if (ball.y + ball.r > H) {
+    lives--;
+    document.getElementById('lives').textContent = '❤️'.repeat(lives);
+    if (lives <= 0) { gameOver = true; audio.play('breakout-gameover'); showMsg('"Every brick is a market we haven\'t entered yet"', 5000); return; }
+    ball.x = paddle.x + paddle.w/2; ball.y = H - 50; ball.vx = 4; ball.vy = -4;
+  }
+
+  // Paddle collision
+  if (ball.y + ball.r > paddle.y && ball.y - ball.r < paddle.y + paddle.h &&
+      ball.x > paddle.x && ball.x < paddle.x + paddle.w) {
+    ball.vy = -Math.abs(ball.vy);
+    ball.vx += (ball.x - (paddle.x + paddle.w/2)) * 0.1;
+  }
+
+  // Brick collision
+  for (let b of bricks) {
+    if (!b.alive) continue;
+    if (ball.x + ball.r > b.x && ball.x - ball.r < b.x + b.w && ball.y + ball.r > b.y && ball.y - ball.r < b.y + b.h) {
+      b.alive = false; score += b.pts;
+      document.getElementById('score').textContent = 'Score: ' + score;
+      ball.vy *= -1;
+      if (bricks.every(br => !br.alive)) { won = true; showMsg('You win! Every market conquered.', 5000); }
+      break;
+    }
+  }
+}
+
+function draw() {
+  ctx.fillStyle = '#0a0a0a'; ctx.fillRect(0, 0, W, H);
+  if (!started) return;
+  // Bricks
+  bricks.forEach(b => { if (b.alive) { ctx.fillStyle = b.color; ctx.fillRect(b.x, b.y, b.w, b.h); } });
+  // Paddle
+  ctx.fillStyle = '#f0f'; ctx.fillRect(paddle.x, paddle.y, paddle.w, paddle.h);
+  // Ball
+  ctx.beginPath(); ctx.arc(ball.x, ball.y, ball.r, 0, Math.PI*2); ctx.fill();
+  if (gameOver) {
+    ctx.fillStyle = '#f0f'; ctx.font = '36px Courier New'; ctx.textAlign = 'center';
+    ctx.fillText('GAME OVER', W/2, H/2); ctx.font = '16px Courier New'; ctx.fillText('Press SPACE to restart', W/2, H/2 + 40);
+  }
+  if (won) {
+    ctx.fillStyle = '#0f0'; ctx.font = '36px Courier New'; ctx.textAlign = 'center';
+    ctx.fillText('YOU WIN!', W/2, H/2); ctx.font = '16px Courier New'; ctx.fillText('Press SPACE to play again', W/2, H/2 + 40);
+  }
+}
+
+function loop() { update(); draw(); requestAnimationFrame(loop); }
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
