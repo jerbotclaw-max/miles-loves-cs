@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Galaga — Arcade Zone</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <nav></nav>
+  <main>
+    <div class="game-wrapper">
+      <div class="game-header">
+        <h1 style="color:var(--neon-pink);text-shadow:0 0 15px var(--neon-pink);">GALAGA</h1>
+      </div>
+      <div class="game-row-layout">
+        <!-- HIGH SCORES PANEL (left) -->
+        <div class="game-scores-panel" id="highScoresPanel">
+          <h4>HIGH SCORES</h4>
+          <ol id="highScoresList"></ol>
+        </div>
+
+        <div class="game-canvas-container" style="position:relative;">
+          <canvas id="gameCanvas" width="480" height="560"></canvas>
+          <div class="game-start-overlay" id="overlay">
+            <h2>GALAGA</h2>
+            <p>PRESS ENTER TO START</p>
+          </div>
+        </div>
+      </div>
+      <div class="game-info" id="gameInfo">
+        <span>SCORE: <strong id="scoreDisplay">0</strong></span>
+        <span>LIVES: <strong id="livesDisplay">3</strong></span>
+        <span>WAVE: <strong id="waveDisplay">1</strong></span>
+      </div>
+      <div class="game-controls">
+        <h3>CONTROLS</h3>
+        <ul>
+          <li><kbd>←</kbd> <kbd>→</kbd> — Move ship</li>
+          <li><kbd>SPACE</kbd> — Shoot</li>
+          <li><kbd>P</kbd> — Pause</li>
+        </ul>
+      </div>
+    </div>
+  </main>
+  <script src="js/auth.js"></script>
+  <script src="js/scores.js"></script>
+  <script src="js/common.js"></script>
+  <script>
+  (function() {
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    const W = canvas.width, H = canvas.height;
+    const overlay = document.getElementById('overlay');
+
+    let player, enemies, bullets, enemyBullets, particles, bunkers;
+    let score, lives, wave, gameOver, paused, started;
+    let keys = {};
+    let shootCooldown = 0;
+    const SHOOT_DELAY = 18; // Slower shooting
+    let waveTimer = 0;
+    let diveTimer = 0;
+    let enemyDir = 1;
+    let enemyMoveTimer = 0;
+    let moveInterval = 35; // Slower enemy movement (was ~15-45)
+    let formationY = 50;
+    let formationTargetY = 50;
+
+    const ENEMY_COLS = 8;
+    const ENEMY_ROWS = 4;
+
+    function loadHighScores() {
+      const scores = Scores.getScoresForGame('galaga').slice(0, 10);
+      const list = document.getElementById('highScoresList');
+      if (scores.length === 0) {
+        list.innerHTML = '<li style="color:var(--text-secondary);font-size:0.7rem;">No scores yet</li>';
+      } else {
+        list.innerHTML = scores.map((s, i) =>
+          '<li><span class="hs-rank">' + (i+1) + '.</span> <span class="hs-name">' + s.username + '</span> <span class="hs-score">' + s.score.toLocaleString() + '</span></li>'
+        ).join('');
+      }
+    }
+
+    function init() {
+      player = { x: W/2, y: H - 40, w: 30, h: 20, speed: 4, invincible: 0 };
+      bullets = [];
+      enemyBullets = [];
+      particles = [];
+      score = 0; lives = 3; wave = 1;
+      gameOver = false; paused = false; started = true;
+      shootCooldown = 0;
+      waveTimer = 0;
+      diveTimer = 0;
+      moveInterval = 35;
+      spawnWave();
+      createBunkers();
+      overlay.classList.add('hidden');
+      updateUI();
+      loadHighScores();
+      requestAnimationFrame(loop);
+    }
+
+    function createBunkers() {
+      bunkers = [];
+      const bunkerCount = 4;
+      const bunkerW = 50;
+      const bunkerH = 30;
+      const spacing = (W - bunkerCount * bunkerW) / (bunkerCount + 1);
+      const bunkerY = H - 90;
+
+      for (let b = 0; b < bunkerCount; b++) {
+        const bx = spacing + b * (bunkerW + spacing);
+        // Each bunker is made of small blocks
+        const blocks = [];
+        for (let r = 0; r < 6; r++) {
+          for (let c = 0; c < 10; c++) {
+            // Create arch shape — skip bottom-center blocks
+            const isArch = r >= 4 && c >= 3 && c <= 6;
+            // Skip corners for rounded top
+            const isCorner = r === 0 && (c === 0 || c === 9);
+            if (!isArch && !isCorner) {
+              blocks.push({
+                x: bx + c * 5,
+                y: bunkerY + r * 5,
+                w: 5, h: 5,
+                hp: 3 // Takes 3 hits to destroy
+              });
+            }
+          }
+        }
+        bunkers.push(blocks);
+      }
+    }
+
+    function spawnWave() {
+      enemies = [];
+      formationTargetY = 50 + Math.min(wave * 3, 40);
+      formationY = -50;
+      enemyDir = 1;
+      enemyMoveTimer = 0;
+      // Slower movement, decreasing with waves but slower overall
+      moveInterval = Math.max(18, 40 - wave * 2);
+
+      for (let r = 0; r < ENEMY_ROWS; r++) {
+        for (let c = 0; c < ENEMY_COLS; c++) {
+          const baseX = 50 + c * 48;
+          const baseY = r * 38;
+          enemies.push({
+            x: baseX, y: -60 - r * 40,
+            baseX, baseY,
+            w: 24, h: 20,
+            type: r === 0 ? 2 : (r < 2 ? 1 : 0),
+            alive: true,
+            diving: false,
+            divePath: null,
+            diveStep: 0,
+            enterDelay: r * ENEMY_COLS * 2 + c * 2,
+            entered: false,
+            enterTimer: 0,
+            hp: r === 0 ? 2 : 1
+          });
+        }
+      }
+    }
+
+    function startDive(enemy) {
+      if (enemy.diving || !enemy.alive) return;
+      enemy.diving = true;
+      enemy.diveStep = 0;
+      const sx = enemy.x, sy = enemy.y;
+      const midX = sx + (Math.random() - 0.5) * 100;
+      const midY = sy + 100;
+      const ex = player.x + (Math.random() - 0.5) * 60;
+      const ey = H + 30;
+      enemy.divePath = [
+        { x: sx, y: sy },
+        { x: midX, y: midY },
+        { x: ex, y: ey }
+      ];
+    }
+
+    function bezierPoint(p0, p1, p2, t) {
+      const u = 1 - t;
+      return {
+        x: u*u*p0.x + 2*u*t*p1.x + t*t*p2.x,
+        y: u*u*p0.y + 2*u*t*p1.y + t*t*p2.y
+      };
+    }
+
+    function playerShoot() {
+      if (shootCooldown > 0) return;
+      bullets.push({ x: player.x, y: player.y - 12, speed: 5 }); // Slower bullets
+      shootCooldown = SHOOT_DELAY;
+    }
+
+    function enemyShoot(enemy) {
+      const dx = player.x - enemy.x;
+      const dy = player.y - enemy.y;
+      const d = Math.hypot(dx, dy) || 1;
+      const speed = 2 + wave * 0.2; // Slower enemy bullets
+      enemyBullets.push({
+        x: enemy.x, y: enemy.y + 10,
+        vx: (dx / d) * speed * 0.3,
+        vy: speed
+      });
+    }
+
+    function explode(x, y, count, color) {
+      for (let i = 0; i < count; i++) {
+        const a = Math.random() * Math.PI * 2;
+        const s = 1 + Math.random() * 3;
+        particles.push({
+          x, y, vx: Math.cos(a)*s, vy: Math.sin(a)*s,
+          life: 15 + Math.random() * 15,
+          color: color || '#ff0066'
+        });
+      }
+    }
+
+    function update() {
+      // Player movement
+      if (keys['ArrowLeft']) player.x -= player.speed;
+      if (keys['ArrowRight']) player.x += player.speed;
+      player.x = Math.max(15, Math.min(W - 15, player.x));
+
+      if (keys[' ']) playerShoot();
+      if (shootCooldown > 0) shootCooldown--;
+      if (player.invincible > 0) player.invincible--;
+
+      // Player bullets
+      for (let i = bullets.length - 1; i >= 0; i--) {
+        bullets[i].y -= bullets[i].speed;
+        if (bullets[i].y < -10) { bullets.splice(i, 1); continue; }
+
+        // Bullet-bunker collision
+        const b = bullets[i];
+        let hitBunker = false;
+        for (let bi = 0; bi < bunkers.length && !hitBunker; bi++) {
+          for (let bk = bunkers[bi].length - 1; bk >= 0; bk--) {
+            const blk = bunkers[bi][bk];
+            if (b.x >= blk.x && b.x <= blk.x + blk.w && b.y >= blk.y && b.y <= blk.y + blk.h) {
+              blk.hp--;
+              if (blk.hp <= 0) {
+                bunkers[bi].splice(bk, 1);
+              }
+              hitBunker = true;
+              break;
+            }
+          }
+        }
+        if (hitBunker) { bullets.splice(i, 1); continue; }
+      }
+
+      // Enemy bullets
+      for (let i = enemyBullets.length - 1; i >= 0; i--) {
+        const b = enemyBullets[i];
+        b.x += b.vx; b.y += b.vy;
+        if (b.y > H + 10 || b.x < -10 || b.x > W + 10) {
+          enemyBullets.splice(i, 1);
+          continue;
+        }
+
+        // Enemy bullet-bunker collision
+        let hitBunker = false;
+        for (let bi = 0; bi < bunkers.length && !hitBunker; bi++) {
+          for (let bk = bunkers[bi].length - 1; bk >= 0; bk--) {
+            const blk = bunkers[bi][bk];
+            if (b.x >= blk.x && b.x <= blk.x + blk.w && b.y >= blk.y && b.y <= blk.y + blk.h) {
+              blk.hp--;
+              if (blk.hp <= 0) bunkers[bi].splice(bk, 1);
+              hitBunker = true;
+              break;
+            }
+          }
+        }
+        if (hitBunker) { enemyBullets.splice(i, 1); continue; }
+
+        // Hit player
+        if (player.invincible <= 0 && Math.abs(b.x - player.x) < 12 && Math.abs(b.y - player.y) < 12) {
+          enemyBullets.splice(i, 1);
+          playerHit();
+          return;
+        }
+      }
+
+      // Formation movement
+      formationY += (formationTargetY - formationY) * 0.03;
+
+      enemyMoveTimer++;
+      if (enemyMoveTimer >= moveInterval) {
+        enemyMoveTimer = 0;
+        let anyAtEdge = false;
+        for (const e of enemies) {
+          if (!e.alive || e.diving) continue;
+          if (e.entered && (e.baseX < 30 || e.baseX > W - 70)) { anyAtEdge = true; break; }
+        }
+        if (anyAtEdge) {
+          enemyDir *= -1;
+          for (const e of enemies) {
+            if (!e.alive || e.diving) continue;
+            if (e.entered) e.baseY += 6; // Smaller step down
+          }
+        }
+        for (const e of enemies) {
+          if (!e.alive || e.diving || !e.entered) continue;
+          e.baseX += enemyDir * 8; // Smaller horizontal step
+        }
+      }
+
+      // Enemy enter animation
+      for (const e of enemies) {
+        if (e.entered || !e.alive) continue;
+        e.enterTimer++;
+        if (e.enterTimer >= e.enterDelay) {
+          e.y += 2;
+          if (e.y >= formationY + e.baseY) {
+            e.y = formationY + e.baseY;
+            e.entered = true;
+          }
+        }
+      }
+
+      // Update non-diving enemies positions
+      for (const e of enemies) {
+        if (!e.alive || e.diving || !e.entered) continue;
+        e.x = e.baseX;
+        e.y = formationY + e.baseY;
+      }
+
+      // Dive logic — less frequent dives
+      diveTimer++;
+      if (diveTimer >= Math.max(80, 180 - wave * 10)) {
+        diveTimer = 0;
+        const alive = enemies.filter(e => e.alive && e.entered && !e.diving);
+        if (alive.length > 0) {
+          const diver = alive[Math.floor(Math.random() * alive.length)];
+          startDive(diver);
+        }
+      }
+
+      // Update diving enemies
+      for (const e of enemies) {
+        if (!e.diving || !e.alive) continue;
+        e.diveStep += 0.008 + wave * 0.001; // Slower dive
+        if (e.diveStep >= 1) {
+          e.diving = false;
+          e.x = e.baseX;
+          e.y = formationY + e.baseY;
+          e.divePath = null;
+        } else {
+          const pos = bezierPoint(e.divePath[0], e.divePath[1], e.divePath[2], e.diveStep);
+          e.x = pos.x;
+          e.y = pos.y;
+          if (e.diveStep > 0.2 && e.diveStep < 0.6 && Math.random() < 0.015 + wave * 0.003) {
+            enemyShoot(e);
+          }
+        }
+      }
+
+      // Bullet-enemy collision
+      for (let i = bullets.length - 1; i >= 0; i--) {
+        const b = bullets[i];
+        let hit = false;
+        for (const e of enemies) {
+          if (!e.alive) continue;
+          if (Math.abs(b.x - e.x) < e.w/2 + 3 && Math.abs(b.y - e.y) < e.h/2 + 3) {
+            e.hp--;
+            if (e.hp <= 0) {
+              e.alive = false;
+              score += [50, 80, 150][e.type] * wave;
+              explode(e.x, e.y, 12, ['#00ff88','#ffee00','#ff0066'][e.type]);
+            } else {
+              explode(e.x, e.y, 4, '#ffee00');
+            }
+            hit = true;
+            updateUI();
+            break;
+          }
+        }
+        if (hit) bullets.splice(i, 1);
+      }
+
+      // Enemy-player collision
+      if (player.invincible <= 0) {
+        for (const e of enemies) {
+          if (!e.alive) continue;
+          if (Math.abs(e.x - player.x) < 16 && Math.abs(e.y - player.y) < 16) {
+            e.alive = false;
+            explode(e.x, e.y, 15, '#ff0066');
+            playerHit();
+            return;
+          }
+        }
+      }
+
+      // Check if enemies reached the bottom (game over)
+      for (const e of enemies) {
+        if (e.alive && e.entered && !e.diving && e.y + e.h/2 > H - 100) {
+          gameOver = true;
+          endGame();
+          return;
+        }
+      }
+
+      // Wave complete
+      if (enemies.every(e => !e.alive)) {
+        wave++;
+        waveTimer = 60;
+        spawnWave();
+        // Repair bunkers slightly between waves
+        for (const bunker of bunkers) {
+          for (const blk of bunker) {
+            blk.hp = Math.min(3, blk.hp + 1);
+          }
+        }
+        updateUI();
+      }
+
+      // Particles
+      for (let i = particles.length - 1; i >= 0; i--) {
+        const p = particles[i];
+        p.x += p.vx; p.y += p.vy;
+        p.vx *= 0.96; p.vy *= 0.96;
+        p.life--;
+        if (p.life <= 0) particles.splice(i, 1);
+      }
+
+      if (waveTimer > 0) waveTimer--;
+    }
+
+    function playerHit() {
+      lives--;
+      explode(player.x, player.y, 20, '#00ccff');
+      updateUI();
+      if (lives <= 0) {
+        gameOver = true;
+        endGame();
+      } else {
+        player.x = W / 2;
+        player.invincible = 90;
+      }
+    }
+
+    function drawEnemy(e) {
+      const colors = ['#00ff88', '#ffee00', '#ff0066'];
+      const color = colors[e.type];
+
+      ctx.fillStyle = color;
+      if (e.type === 0) {
+        ctx.fillRect(e.x - 10, e.y - 8, 20, 16);
+        ctx.fillStyle = '#000';
+        ctx.fillRect(e.x - 6, e.y - 4, 4, 4);
+        ctx.fillRect(e.x + 2, e.y - 4, 4, 4);
+      } else if (e.type === 1) {
+        ctx.fillRect(e.x - 8, e.y - 8, 16, 16);
+        ctx.fillRect(e.x - 14, e.y - 4, 6, 8);
+        ctx.fillRect(e.x + 8, e.y - 4, 6, 8);
+        ctx.fillStyle = '#000';
+        ctx.fillRect(e.x - 4, e.y - 3, 3, 3);
+        ctx.fillRect(e.x + 1, e.y - 3, 3, 3);
+      } else {
+        ctx.fillRect(e.x - 12, e.y - 10, 24, 20);
+        ctx.fillRect(e.x - 16, e.y - 4, 6, 8);
+        ctx.fillRect(e.x + 10, e.y - 4, 6, 8);
+        ctx.fillStyle = e.hp > 1 ? '#fff' : '#000';
+        ctx.fillRect(e.x - 6, e.y - 4, 5, 5);
+        ctx.fillRect(e.x + 1, e.y - 4, 5, 5);
+        if (e.hp > 1) {
+          ctx.fillStyle = '#ffee00';
+          ctx.fillRect(e.x - 10, e.y + 4, 20, 3);
+        }
+      }
+    }
+
+    function draw() {
+      ctx.fillStyle = '#0a0a20';
+      ctx.fillRect(0, 0, W, H);
+
+      // Starfield
+      ctx.fillStyle = 'rgba(255,255,255,0.25)';
+      for (let i = 0; i < 50; i++) {
+        const sx = (i * 137.5 + 50) % W;
+        const sy = ((i * 97.3 + 30) + (Date.now() * 0.01 * (i % 3 + 1)) % H) % H;
+        ctx.fillRect(sx, sy, 1, 1);
+      }
+
+      // Bunkers
+      for (const bunker of bunkers) {
+        for (const blk of bunker) {
+          if (blk.hp === 3) ctx.fillStyle = '#00ff88';
+          else if (blk.hp === 2) ctx.fillStyle = '#008844';
+          else ctx.fillStyle = '#004422';
+          ctx.fillRect(blk.x, blk.y, blk.w, blk.h);
+        }
+      }
+
+      // Particles
+      for (const p of particles) {
+        ctx.globalAlpha = Math.max(0, p.life / 20);
+        ctx.fillStyle = p.color;
+        ctx.fillRect(p.x - 1, p.y - 1, 3, 3);
+      }
+      ctx.globalAlpha = 1;
+
+      // Enemies
+      for (const e of enemies) {
+        if (!e.alive) continue;
+        if (!e.entered && e.enterTimer < e.enterDelay) continue;
+        drawEnemy(e);
+      }
+
+      // Player bullets
+      ctx.fillStyle = '#00ff88';
+      for (const b of bullets) {
+        ctx.fillRect(b.x - 1.5, b.y - 5, 3, 10);
+      }
+
+      // Enemy bullets
+      ctx.fillStyle = '#ff4466';
+      for (const b of enemyBullets) {
+        ctx.beginPath();
+        ctx.arc(b.x, b.y, 3, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      // Player
+      if (!gameOver) {
+        const showPlayer = player.invincible <= 0 || Math.floor(player.invincible / 4) % 2 === 0;
+        if (showPlayer) {
+          ctx.fillStyle = '#00ccff';
+          ctx.beginPath();
+          ctx.moveTo(player.x, player.y - 14);
+          ctx.lineTo(player.x - 14, player.y + 8);
+          ctx.lineTo(player.x - 4, player.y + 4);
+          ctx.lineTo(player.x, player.y + 8);
+          ctx.lineTo(player.x + 4, player.y + 4);
+          ctx.lineTo(player.x + 14, player.y + 8);
+          ctx.closePath();
+          ctx.fill();
+
+          ctx.fillStyle = '#0088ff';
+          ctx.fillRect(player.x - 3, player.y + 8, 6, 3 + Math.random() * 3);
+        }
+      }
+
+      // Wave announcement
+      if (waveTimer > 30) {
+        ctx.fillStyle = 'rgba(0,0,0,0.5)';
+        ctx.fillRect(0, H/2 - 30, W, 60);
+        ctx.fillStyle = '#ff0066';
+        ctx.font = '16px "Press Start 2P"';
+        ctx.textAlign = 'center';
+        ctx.fillText('WAVE ' + wave, W/2, H/2 + 6);
+      }
+
+      if (gameOver) {
+        ctx.fillStyle = 'rgba(0,0,0,0.75)';
+        ctx.fillRect(0, 0, W, H);
+        ctx.fillStyle = '#ff0066';
+        ctx.font = '20px "Press Start 2P"';
+        ctx.textAlign = 'center';
+        ctx.fillText('GAME OVER', W/2, H/2 - 10);
+        ctx.fillStyle = '#888';
+        ctx.font = '10px "Press Start 2P"';
+        ctx.fillText('ENTER TO RESTART', W/2, H/2 + 25);
+      }
+
+      if (paused && !gameOver) {
+        ctx.fillStyle = 'rgba(0,0,0,0.6)';
+        ctx.fillRect(0, 0, W, H);
+        ctx.fillStyle = '#ff0066';
+        ctx.font = '16px "Press Start 2P"';
+        ctx.textAlign = 'center';
+        ctx.fillText('PAUSED', W/2, H/2);
+      }
+    }
+
+    function updateUI() {
+      document.getElementById('scoreDisplay').textContent = score.toLocaleString();
+      document.getElementById('livesDisplay').textContent = lives;
+      document.getElementById('waveDisplay').textContent = wave;
+    }
+
+    function endGame() {
+      const user = Auth.getCurrentUser();
+      if (user && score > 0) Scores.addScore('galaga', score, user.username);
+      loadHighScores();
+    }
+
+    let lastTime = 0;
+    function loop(ts) {
+      if (!started) return;
+      if (!lastTime) lastTime = ts;
+      lastTime = ts;
+
+      if (!gameOver && !paused) update();
+      draw();
+      requestAnimationFrame(loop);
+    }
+
+    document.addEventListener('keydown', e => {
+      keys[e.key] = true;
+      if (!started && e.key === 'Enter') { init(); return; }
+      if (gameOver && e.key === 'Enter') { init(); return; }
+      if (e.key === 'p' || e.key === 'P') paused = !paused;
+      if (['ArrowUp','ArrowDown','ArrowLeft','ArrowRight',' '].includes(e.key)) e.preventDefault();
+    });
+    document.addEventListener('keyup', e => { keys[e.key] = false; });
+
+    ctx.fillStyle = '#0a0a20';
+    ctx.fillRect(0, 0, W, H);
+    loadHighScores();
+  })();
+  </script>
+</body>
+</html>

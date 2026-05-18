@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login — Arcade Zone</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <nav></nav>
+  <div class="auth-container">
+    <h2>👾 ARCADE ZONE</h2>
+    <div class="auth-tabs">
+      <button class="auth-tab active" onclick="switchTab('login')">LOGIN</button>
+      <button class="auth-tab" onclick="switchTab('register')">REGISTER</button>
+    </div>
+    <div id="error" class="auth-error"></div>
+    <form id="authForm" onsubmit="handleSubmit(event)">
+      <div class="form-group">
+        <label>Username</label>
+        <input type="text" id="username" autocomplete="username" required>
+      </div>
+      <div class="form-group">
+        <label>Password</label>
+        <input type="password" id="password" autocomplete="current-password" required>
+      </div>
+      <button type="submit" class="auth-submit" id="submitBtn">LOGIN</button>
+    </form>
+  </div>
+  <script src="js/auth.js"></script>
+  <script src="js/common.js"></script>
+  <script>
+    let mode = 'login';
+
+    function switchTab(m) {
+      mode = m;
+      document.querySelectorAll('.auth-tab').forEach((t, i) => {
+        t.classList.toggle('active', (i === 0 && m === 'login') || (i === 1 && m === 'register'));
+      });
+      document.getElementById('submitBtn').textContent = m === 'login' ? 'LOGIN' : 'REGISTER';
+      document.getElementById('error').textContent = '';
+    }
+
+    function handleSubmit(e) {
+      e.preventDefault();
+      const u = document.getElementById('username').value.trim();
+      const p = document.getElementById('password').value;
+      const errEl = document.getElementById('error');
+
+      const result = mode === 'login' ? Auth.login(u, p) : Auth.register(u, p);
+      if (result.ok) {
+        window.location.href = 'index.html';
+      } else {
+        errEl.textContent = result.error;
+      }
+    }
+
+    if (Auth.isLoggedIn()) {
+      window.location.href = 'index.html';
+    }
+  </script>
+</body>
+</html>

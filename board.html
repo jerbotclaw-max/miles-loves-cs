@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Board — Arcade Zone</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <nav></nav>
+  <main>
+    <h2 class="section-title">💬 MESSAGE BOARD</h2>
+    <div id="postArea"></div>
+    <div class="board-messages" id="messagesContainer"></div>
+    <div id="noMessages" class="board-empty">No messages yet. Be the first to post!</div>
+  </main>
+  <footer>
+    <p>👾 Arcade Zone — A School CS Project</p>
+  </footer>
+  <script src="js/auth.js"></script>
+  <script src="js/common.js"></script>
+  <script>
+    const MSG_KEY = 'arcade_messages';
+
+    function getMessages() {
+      try { return JSON.parse(localStorage.getItem(MSG_KEY)) || []; }
+      catch { return []; }
+    }
+
+    function saveMessages(msgs) {
+      localStorage.setItem(MSG_KEY, JSON.stringify(msgs));
+    }
+
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    function renderPostForm() {
+      const area = document.getElementById('postArea');
+      if (Auth.isLoggedIn()) {
+        area.innerHTML = `
+          <div class="board-post-form">
+            <div class="form-group">
+              <textarea id="msgInput" placeholder="Write a message..." maxlength="500"></textarea>
+            </div>
+            <button class="btn btn-primary btn-small" onclick="postMessage()">POST</button>
+          </div>`;
+      } else {
+        area.innerHTML = `
+          <div class="login-prompt">
+            <p>You need to log in to post messages.</p>
+            <a href="login.html" class="btn btn-primary btn-small">LOGIN</a>
+          </div>`;
+      }
+    }
+
+    function postMessage() {
+      const input = document.getElementById('msgInput');
+      const text = input.value.trim();
+      if (!text) return;
+      const user = Auth.getCurrentUser();
+      const msgs = getMessages();
+      msgs.push({
+        username: user.username,
+        text: text,
+        date: Date.now()
+      });
+      saveMessages(msgs);
+      input.value = '';
+      renderMessages();
+    }
+
+    function renderMessages() {
+      const container = document.getElementById('messagesContainer');
+      const noEl = document.getElementById('noMessages');
+      const msgs = getMessages().reverse();
+
+      if (msgs.length === 0) {
+        container.innerHTML = '';
+        noEl.style.display = 'block';
+        return;
+      }
+      noEl.style.display = 'none';
+
+      container.innerHTML = msgs.map(m => `
+        <div class="board-msg">
+          <div class="board-msg-header">
+            <span class="board-msg-user">${escapeHtml(m.username)}</span>
+            <span class="board-msg-time">${new Date(m.date).toLocaleString()}</span>
+          </div>
+          <div class="board-msg-body">${escapeHtml(m.text)}</div>
+        </div>
+      `).join('');
+    }
+
+    renderPostForm();
+    renderMessages();
+  </script>
+</body>
+</html>
