@@ -1,58 +1,103 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>miles-loves-cs</title>
-<style>
-* { margin: 0; padding: 0; box-sizing: border-box; }
-body { background: #0a0a0a; min-height: 100vh; font-family: 'Courier New', monospace; color: #0f0; padding: 40px 20px; }
-h1 { text-align: center; font-size: 2.5em; margin-bottom: 5px; color: #0ff; }
-h2 { text-align: center; font-size: 1em; color: #555; margin-bottom: 40px; font-weight: normal; }
-.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 24px; max-width: 800px; margin: 0 auto; }
-.card { background: #111; border: 1px solid #222; border-radius: 8px; padding: 30px 20px; text-align: center; transition: border-color 0.3s, transform 0.2s; text-decoration: none; color: inherit; display: block; }
-.card:hover { border-color: #0f0; transform: translateY(-4px); }
-.card .icon { font-size: 2.5em; margin-bottom: 12px; }
-.card h3 { font-size: 1.3em; margin-bottom: 8px; }
-.card p { font-size: 0.8em; color: #666; line-height: 1.4; }
-.pong-c { border-color: #0f0; } .pong-c .icon { color: #0f0; }
-.asteroids-c .icon { color: #0ff; }
-.snake-c .icon { color: #0a0; }
-.flappy-c .icon { color: #ff0; }
-.breakout-c .icon { color: #f0f; }
-footer { text-align: center; margin-top: 40px; color: #333; font-size: 0.75em; }
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>👾 Arcade Zone</title>
+  <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-<h1>miles-loves-cs</h1>
-<h2>Classic arcade games with executive commentary</h2>
-<div class="grid">
-  <a href="pong.html" class="card pong-c">
-    <div class="icon">🏓</div>
-    <h3>Pong</h3>
-    <p>The classic. First to 5 wins.</p>
-  </a>
-  <a href="asteroids.html" class="card asteroids-c">
-    <div class="icon">☄️</div>
-    <h3>Asteroids</h3>
-    <p>Rotate, thrust, blast. Don't crash.</p>
-  </a>
-  <a href="snake.html" class="card snake-c">
-    <div class="icon">🐍</div>
-    <h3>Snake</h3>
-    <p>Eat. Grow. Don't eat yourself.</p>
-  </a>
-  <a href="flappy.html" class="card flappy-c">
-    <div class="icon">🐦</div>
-    <h3>Flappy</h3>
-    <p>Tap to fly. Dodge the pipes.</p>
-  </a>
-  <a href="breakout.html" class="card breakout-c">
-    <div class="icon">🧱</div>
-    <h3>Breakout</h3>
-    <p>Break all the bricks. Clear the board.</p>
-  </a>
-</div>
-<footer>built with ❤️ and silicon valley energy</footer>
+  <nav></nav>
+  <main>
+    <div class="hero">
+      <h1>👾 ARCADE ZONE</h1>
+      <p>Classic arcade games, right in your browser. Compete for high scores, chat on the board, and prove you're the best.</p>
+      <div style="display:flex;gap:1rem;justify-content:center;flex-wrap:wrap;">
+        <a href="games.html" class="btn btn-primary">PLAY NOW</a>
+        <a href="scores.html" class="btn btn-secondary">HIGH SCORES</a>
+      </div>
+    </div>
+
+    <div class="features-row">
+      <div class="feature-box">
+        <div class="icon">🎮</div>
+        <h3>7 GAMES</h3>
+        <p>Tetris, Asteroids, Galaga, Snake, Breakout, Flappy, Pong</p>
+      </div>
+      <div class="feature-box">
+        <div class="icon">🏆</div>
+        <h3>LEADERBOARD</h3>
+        <p>Compete for the top spot on every game</p>
+      </div>
+      <div class="feature-box">
+        <div class="icon">💬</div>
+        <h3>MESSAGE BOARD</h3>
+        <p>Post messages, trash talk, share strategies</p>
+      </div>
+      <div class="feature-box">
+        <div class="icon">🔐</div>
+        <h3>ACCOUNTS</h3>
+        <p>Register to track your scores and post</p>
+      </div>
+    </div>
+
+    <h2 class="section-title">⚡ PICK A GAME</h2>
+    <div class="games-grid">
+      <a href="tetris.html" class="game-card">
+        <div class="game-card-preview tetris-bg">🧱</div>
+        <div class="game-card-body">
+          <h3 class="tetris-title">TETRIS</h3>
+          <p>Classic falling blocks. Clear lines, level up, don't let it stack up!</p>
+        </div>
+      </a>
+      <a href="asteroids.html" class="game-card">
+        <div class="game-card-preview asteroids-bg">☄️</div>
+        <div class="game-card-body">
+          <h3 class="asteroids-title">ASTEROIDS</h3>
+          <p>Pilot your ship through an asteroid field. Shoot, split, survive.</p>
+        </div>
+      </a>
+      <a href="galaga.html" class="game-card">
+        <div class="game-card-preview galaga-bg">🚀</div>
+        <div class="game-card-body">
+          <h3 class="galaga-title">GALAGA</h3>
+          <p>Defend Earth from alien invaders. Dodge, shoot, survive the swarm.</p>
+        </div>
+      </a>
+      <a href="snake.html" class="game-card">
+        <div class="game-card-preview snake-bg">🐍</div>
+        <div class="game-card-body">
+          <h3 class="snake-title">SNAKE</h3>
+          <p>Eat, grow, survive. Don't bite yourself.</p>
+        </div>
+      </a>
+      <a href="breakout.html" class="game-card">
+        <div class="game-card-preview breakout-bg">🧱</div>
+        <div class="game-card-body">
+          <h3 class="breakout-title">BREAKOUT</h3>
+          <p>Smash bricks with a bouncing ball. Three lives, no mercy.</p>
+        </div>
+      </a>
+      <a href="flappy.html" class="game-card">
+        <div class="game-card-preview flappy-bg">🐦</div>
+        <div class="game-card-body">
+          <h3 class="flappy-title">FLAPPY</h3>
+          <p>Tap to flap through pipes. Sounds easy. It's not.</p>
+        </div>
+      </a>
+      <a href="pong.html" class="game-card">
+        <div class="game-card-preview pong-bg">🏓</div>
+        <div class="game-card-body">
+          <h3 class="pong-title">PONG</h3>
+          <p>Beat the AI — first to 5 wins. The OG arcade game.</p>
+        </div>
+      </a>
+    </div>
+  </main>
+  <footer>
+    <p>👾 Arcade Zone — A School CS Project</p>
+  </footer>
+  <script src="js/auth.js"></script>
+  <script src="js/common.js"></script>
 </body>
 </html>

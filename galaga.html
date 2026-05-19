@@ -44,6 +44,7 @@
     </div>
   </main>
   <script src="js/auth.js"></script>
+  <script src="js/api.js"></script>
   <script src="js/scores.js"></script>
   <script src="js/common.js"></script>
   <script>
@@ -69,8 +70,8 @@
     const ENEMY_COLS = 8;
     const ENEMY_ROWS = 4;
 
-    function loadHighScores() {
-      const scores = Scores.getScoresForGame('galaga').slice(0, 10);
+    async function loadHighScores() {
+      const scores = (await Scores.getScoresForGame('galaga')).slice(0, 10);
       const list = document.getElementById('highScoresList');
       if (scores.length === 0) {
         list.innerHTML = '<li style="color:var(--text-secondary);font-size:0.7rem;">No scores yet</li>';
@@ -583,7 +584,7 @@
 
     function endGame() {
       const user = Auth.getCurrentUser();
-      if (user && score > 0) Scores.addScore('galaga', score, user.username);
+      if (user && score > 0) await Scores.addScore('galaga', score, user.username);
       loadHighScores();
     }
 

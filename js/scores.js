@@ -1,49 +1,32 @@
-// ===== HIGH SCORES (localStorage) =====
+// ===== HIGH SCORES (Shared via API) =====
 
 const Scores = {
-  KEY: 'arcade_scores',
+  _cache: null,
+  _cacheTime: 0,
 
-  getScores() {
-    try {
-      return JSON.parse(localStorage.getItem(this.KEY)) || [];
-    } catch { return []; }
+  async getAllScores() {
+    const now = Date.now();
+    if (this._cache && now - this._cacheTime < 5000) return this._cache;
+    this._cache = await Api.getScores();
+    this._cacheTime = now;
+    return this._cache || [];
   },
 
-  saveScores(scores) {
-    localStorage.setItem(this.KEY, JSON.stringify(scores));
-  },
-
-  addScore(game, score, username) {
-    if (!game || !score || score <= 0) return;
-    const scores = this.getScores();
-    scores.push({
-      game,
-      score: Math.floor(score),
-      username: username || 'anonymous',
-      date: Date.now()
-    });
-    // Keep top 100 per game
-    const byGame = {};
-    scores.forEach(s => {
-      if (!byGame[s.game]) byGame[s.game] = [];
-      byGame[s.game].push(s);
-    });
-    const trimmed = [];
-    Object.values(byGame).forEach(arr => {
-      arr.sort((a, b) => b.score - a.score);
-      trimmed.push(...arr.slice(0, 100));
-    });
-    this.saveScores(trimmed);
-  },
-
-  getScoresForGame(game) {
-    return this.getScores()
+  async getScoresForGame(game) {
+    const scores = await this.getAllScores();
+    return scores
       .filter(s => s.game === game)
       .sort((a, b) => b.score - a.score);
   },
 
-  getAllScores() {
-    return this.getScores().sort((a, b) => b.score - a.score);
+  async getScoresSorted() {
+    const scores = await this.getAllScores();
+    return scores.sort((a, b) => b.score - a.score);
+  },
+
+  async addScore(game, score, username) {
+    this._cache = null; // invalidate cache
+    return await Api.addScore(game, score, username);
   },
 
   formatDate(ts) {

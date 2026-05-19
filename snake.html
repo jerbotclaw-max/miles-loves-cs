@@ -3,38 +3,67 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Snake</title>
+<title>Snake — Arcade Zone</title>
+<link rel="stylesheet" href="css/style.css">
 <style>
-* { margin: 0; padding: 0; box-sizing: border-box; }
-body { background: #0a0a0a; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; font-family: 'Courier New', monospace; color: #0f0; overflow: hidden; }
-canvas { border: 2px solid #0f0; }
-#score { position: fixed; top: 10px; left: 20px; font-size: 18px; }
-#high { position: fixed; top: 10px; right: 20px; font-size: 18px; }
-#msg { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); color: #0f0; font-size: 14px; text-align: center; pointer-events: none; opacity: 0; transition: opacity 0.5s; }
-#msg.show { opacity: 1; }
-#mute { position: fixed; top: 10px; right: 150px; background: none; border: 1px solid #0f0; color: #0f0; padding: 4px 10px; cursor: pointer; font-family: inherit; font-size: 14px; z-index: 20; }
-#start { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); color: #0f0; font-size: 24px; z-index: 15; }
+.game-canvas-container { background: #0a0a0a; }
+canvas { border: 2px solid #0f0; display: block; }
+#gameScore { position: absolute; top: 10px; left: 20px; font-size: 18px; color: #0f0; font-family: 'Courier New', monospace; }
+#gameHigh { position: absolute; top: 10px; right: 20px; font-size: 18px; color: #0f0; font-family: 'Courier New', monospace; }
+#gameMsg { position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%); color: #0f0; font-size: 14px; text-align: center; pointer-events: none; opacity: 0; transition: opacity 0.5s; white-space: nowrap; }
+#gameMsg.show { opacity: 1; }
+#muteBtn { position: absolute; top: 10px; right: 150px; background: none; border: 1px solid #0f0; color: #0f0; padding: 4px 10px; cursor: pointer; font-family: 'Courier New', monospace; font-size: 14px; z-index: 20; }
+#gameStart { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: #0f0; font-size: 24px; z-index: 15; font-family: 'Courier New', monospace; }
 </style>
 </head>
 <body>
-<div id="score">Score: 0</div>
-<div id="high">Best: 0</div>
-<button id="mute">🔊</button>
-<div id="start">PRESS SPACE TO PLAY</div>
-<div id="msg"></div>
-<canvas id="c" width="600" height="600"></canvas>
+<nav></nav>
+<main>
+  <div class="game-wrapper">
+    <div class="game-header">
+      <h1 style="font-family:'Press Start 2P',monospace;color:#00ff00;">🐍 SNAKE</h1>
+    </div>
+    <div class="game-canvas-container" style="position:relative;">
+      <div id="gameScore">Score: 0</div>
+      <div id="gameHigh">Best: 0</div>
+      <button id="muteBtn">🔊</button>
+      <div id="gameStart">PRESS SPACE TO PLAY</div>
+      <div id="gameMsg"></div>
+      <canvas id="c" width="600" height="600"></canvas>
+    </div>
+    <div class="game-info">
+      <span>SCORE: <strong id="infoScore">0</strong></span>
+    </div>
+    <div class="game-controls">
+      <h3>CONTROLS</h3>
+      <ul>
+        <li><kbd>SPACE</kbd> — Start / Restart</li>
+        <li><kbd>↑</kbd> <kbd>↓</kbd> <kbd>←</kbd> <kbd>→</kbd> — Change direction</li>
+      </ul>
+    </div>
+  </div>
+</main>
+<footer><p>👾 Arcade Zone — A School CS Project</p></footer>
+<script src="js/auth.js"></script>
+<script src="js/api.js"></script>
+<script src="js/common.js"></script>
 <script>
 const c = document.getElementById('c'), ctx = c.getContext('2d');
 let muted = false;
-document.getElementById('mute').onclick = () => { muted = !muted; document.getElementById('mute').textContent = muted ? '🔇' : '🔊'; };
+document.getElementById('muteBtn').onclick = () => { muted = !muted; document.getElementById('muteBtn').textContent = muted ? '🔇' : '🔊'; };
 const audio = { play(n) { if (muted) return; new Audio('audio/' + n + '.mp3').play().catch(()=>{}); } };
 
 const GRID = 20, CELL = 30;
 let snake, dir, food, score, high = 0, started = false, gameOver = false, msgTimer = 0, lastMove = 0;
 
 function showMsg(t, d=3000) {
-  const el = document.getElementById('msg'); el.textContent = t; el.classList.add('show');
+  const el = document.getElementById('gameMsg'); el.textContent = t; el.classList.add('show');
   clearTimeout(msgTimer); msgTimer = setTimeout(() => el.classList.remove('show'), d);
+}
+
+async function submitScore(s) {
+  const user = Auth.getCurrentUser();
+  if (user && s > 0) await Api.addScore('snake', s, user.username);
 }
 
 function init() {
@@ -42,7 +71,8 @@ function init() {
   dir = {x:1,y:0}; nextDir = {x:1,y:0};
   score = 0; gameOver = false;
   placeFood();
-  document.getElementById('score').textContent = 'Score: 0';
+  document.getElementById('gameScore').textContent = 'Score: 0';
+  document.getElementById('infoScore').textContent = '0';
 }
 
 function placeFood() {
@@ -51,7 +81,7 @@ function placeFood() {
 }
 
 document.addEventListener('keydown', e => {
-  if (e.code === 'Space' && !started) { started = true; document.getElementById('start').style.display = 'none'; audio.play('snake-start'); init(); }
+  if (e.code === 'Space' && !started) { started = true; document.getElementById('gameStart').style.display = 'none'; audio.play('snake-start'); init(); }
   if (e.code === 'Space' && gameOver) init();
   if (e.code === 'ArrowUp' && dir.y === 0) nextDir = {x:0,y:-1};
   if (e.code === 'ArrowDown' && dir.y === 0) nextDir = {x:0,y:1};
@@ -69,15 +99,17 @@ function update(ts) {
   if (head.x < 0 || head.x >= GRID || head.y < 0 || head.y >= GRID || snake.some(s => s.x === head.x && s.y === head.y)) {
     gameOver = true;
     if (score > high) high = score;
-    document.getElementById('high').textContent = 'Best: ' + high;
+    document.getElementById('gameHigh').textContent = 'Best: ' + high;
     audio.play('snake-death');
     showMsg('"Sustainable growth is hard"', 4000);
+    submitScore(score);
     return;
   }
   snake.unshift(head);
   if (head.x === food.x && head.y === food.y) {
     score += 10;
-    document.getElementById('score').textContent = 'Score: ' + score;
+    document.getElementById('gameScore').textContent = 'Score: ' + score;
+    document.getElementById('infoScore').textContent = score;
     placeFood();
     if (score % 50 === 0) { audio.play('snake-score'); showMsg('"Every pixel matters at scale"', 3000); }
   } else { snake.pop(); }

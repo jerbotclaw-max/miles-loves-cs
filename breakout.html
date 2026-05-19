@@ -3,38 +3,67 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Breakout</title>
+<title>Breakout — Arcade Zone</title>
+<link rel="stylesheet" href="css/style.css">
 <style>
-* { margin: 0; padding: 0; box-sizing: border-box; }
-body { background: #0a0a0a; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; font-family: 'Courier New', monospace; color: #f0f; overflow: hidden; }
-canvas { border: 2px solid #f0f; }
-#score { position: fixed; top: 10px; left: 20px; font-size: 18px; }
-#lives { position: fixed; top: 10px; right: 20px; font-size: 18px; }
-#msg { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); color: #f0f; font-size: 14px; text-align: center; pointer-events: none; opacity: 0; transition: opacity 0.5s; }
-#msg.show { opacity: 1; }
-#mute { position: fixed; top: 10px; right: 100px; background: none; border: 1px solid #f0f; color: #f0f; padding: 4px 10px; cursor: pointer; font-family: inherit; font-size: 14px; z-index: 20; }
-#start { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); color: #f0f; font-size: 24px; z-index: 15; }
+.game-canvas-container { background: #0a0a0a; }
+canvas { border: 2px solid #f0f; display: block; }
+#gameScore { position: absolute; top: 10px; left: 20px; font-size: 18px; color: #f0f; font-family: 'Courier New', monospace; }
+#gameLives { position: absolute; top: 10px; right: 20px; font-size: 18px; color: #f0f; font-family: 'Courier New', monospace; }
+#gameMsg { position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%); color: #f0f; font-size: 14px; text-align: center; pointer-events: none; opacity: 0; transition: opacity 0.5s; white-space: nowrap; }
+#gameMsg.show { opacity: 1; }
+#muteBtn { position: absolute; top: 10px; right: 100px; background: none; border: 1px solid #f0f; color: #f0f; padding: 4px 10px; cursor: pointer; font-family: 'Courier New', monospace; font-size: 14px; z-index: 20; }
+#gameStart { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: #f0f; font-size: 24px; z-index: 15; font-family: 'Courier New', monospace; }
 </style>
 </head>
 <body>
-<div id="score">Score: 0</div>
-<div id="lives">❤️❤️❤️</div>
-<button id="mute">🔊</button>
-<div id="start">PRESS SPACE TO PLAY</div>
-<div id="msg"></div>
-<canvas id="c" width="600" height="500"></canvas>
+<nav></nav>
+<main>
+  <div class="game-wrapper">
+    <div class="game-header">
+      <h1 style="font-family:'Press Start 2P',monospace;color:#ff00ff;">💥 BREAKOUT</h1>
+    </div>
+    <div class="game-canvas-container" style="position:relative;">
+      <div id="gameScore">Score: 0</div>
+      <div id="gameLives">❤️❤️❤️</div>
+      <button id="muteBtn">🔊</button>
+      <div id="gameStart">PRESS SPACE TO PLAY</div>
+      <div id="gameMsg"></div>
+      <canvas id="c" width="600" height="500"></canvas>
+    </div>
+    <div class="game-info">
+      <span>SCORE: <strong id="infoScore">0</strong></span>
+    </div>
+    <div class="game-controls">
+      <h3>CONTROLS</h3>
+      <ul>
+        <li><kbd>SPACE</kbd> — Start / Restart</li>
+        <li><kbd>←</kbd> <kbd>→</kbd> — Move paddle</li>
+      </ul>
+    </div>
+  </div>
+</main>
+<footer><p>👾 Arcade Zone — A School CS Project</p></footer>
+<script src="js/auth.js"></script>
+<script src="js/api.js"></script>
+<script src="js/common.js"></script>
 <script>
 const c = document.getElementById('c'), ctx = c.getContext('2d');
 let muted = false;
-document.getElementById('mute').onclick = () => { muted = !muted; document.getElementById('mute').textContent = muted ? '🔇' : '🔊'; };
+document.getElementById('muteBtn').onclick = () => { muted = !muted; document.getElementById('muteBtn').textContent = muted ? '🔇' : '🔊'; };
 const audio = { play(n) { if (muted) return; new Audio('audio/' + n + '.mp3').play().catch(()=>{}); } };
 
 const W = 600, H = 500;
 let paddle, ball, bricks, score, lives, started = false, gameOver = false, won = false, msgTimer = 0;
 
 function showMsg(t, d=3000) {
-  const el = document.getElementById('msg'); el.textContent = t; el.classList.add('show');
+  const el = document.getElementById('gameMsg'); el.textContent = t; el.classList.add('show');
   clearTimeout(msgTimer); msgTimer = setTimeout(() => el.classList.remove('show'), d);
+}
+
+async function submitScore(s) {
+  const user = Auth.getCurrentUser();
+  if (user && s > 0) await Api.addScore('breakout', s, user.username);
 }
 
 function init() {
@@ -45,13 +74,14 @@ function init() {
   const colors = ['#f0f','#0ff','#0f0','#ff0','#f80','#f00'];
   for (let r = 0; r < 6; r++) for (let col = 0; col < 10; col++)
     bricks.push({ x: col * 58 + 10, y: r * 22 + 40, w: 54, h: 18, alive: true, color: colors[r], pts: (6-r)*10 });
-  document.getElementById('score').textContent = 'Score: 0';
-  document.getElementById('lives').textContent = '❤️'.repeat(3);
+  document.getElementById('gameScore').textContent = 'Score: 0';
+  document.getElementById('gameLives').textContent = '❤️'.repeat(3);
+  document.getElementById('infoScore').textContent = '0';
 }
 
 document.addEventListener('keydown', e => {
   if (e.code === 'Space') {
-    if (!started) { started = true; document.getElementById('start').style.display = 'none'; audio.play('breakout-start'); showMsg('"Breaking through barriers is in our DNA"'); init(); }
+    if (!started) { started = true; document.getElementById('gameStart').style.display = 'none'; audio.play('breakout-start'); showMsg('"Breaking through barriers is in our DNA"'); init(); }
     else if (gameOver || won) init();
   }
 });
@@ -70,26 +100,25 @@ function update() {
   if (ball.y - ball.r < 0) ball.vy *= -1;
   if (ball.y + ball.r > H) {
     lives--;
-    document.getElementById('lives').textContent = '❤️'.repeat(lives);
-    if (lives <= 0) { gameOver = true; audio.play('breakout-gameover'); showMsg('"Every brick is a market we haven\'t entered yet"', 5000); return; }
+    document.getElementById('gameLives').textContent = '❤️'.repeat(lives);
+    if (lives <= 0) { gameOver = true; audio.play('breakout-gameover'); showMsg('"Every brick is a market we haven\'t entered yet"', 5000); submitScore(score); return; }
     ball.x = paddle.x + paddle.w/2; ball.y = H - 50; ball.vx = 4; ball.vy = -4;
   }
 
-  // Paddle collision
   if (ball.y + ball.r > paddle.y && ball.y - ball.r < paddle.y + paddle.h &&
       ball.x > paddle.x && ball.x < paddle.x + paddle.w) {
     ball.vy = -Math.abs(ball.vy);
     ball.vx += (ball.x - (paddle.x + paddle.w/2)) * 0.1;
   }
 
-  // Brick collision
   for (let b of bricks) {
     if (!b.alive) continue;
     if (ball.x + ball.r > b.x && ball.x - ball.r < b.x + b.w && ball.y + ball.r > b.y && ball.y - ball.r < b.y + b.h) {
       b.alive = false; score += b.pts;
-      document.getElementById('score').textContent = 'Score: ' + score;
+      document.getElementById('gameScore').textContent = 'Score: ' + score;
+      document.getElementById('infoScore').textContent = score;
       ball.vy *= -1;
-      if (bricks.every(br => !br.alive)) { won = true; showMsg('You win! Every market conquered.', 5000); }
+      if (bricks.every(br => !br.alive)) { won = true; showMsg('You win! Every market conquered.', 5000); submitScore(score); }
       break;
     }
   }
@@ -98,11 +127,8 @@ function update() {
 function draw() {
   ctx.fillStyle = '#0a0a0a'; ctx.fillRect(0, 0, W, H);
   if (!started) return;
-  // Bricks
   bricks.forEach(b => { if (b.alive) { ctx.fillStyle = b.color; ctx.fillRect(b.x, b.y, b.w, b.h); } });
-  // Paddle
   ctx.fillStyle = '#f0f'; ctx.fillRect(paddle.x, paddle.y, paddle.w, paddle.h);
-  // Ball
   ctx.beginPath(); ctx.arc(ball.x, ball.y, ball.r, 0, Math.PI*2); ctx.fill();
   if (gameOver) {
     ctx.fillStyle = '#f0f'; ctx.font = '36px Courier New'; ctx.textAlign = 'center';

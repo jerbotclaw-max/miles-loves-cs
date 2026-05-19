@@ -3,33 +3,56 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Pong</title>
+<title>Pong — Arcade Zone</title>
+<link rel="stylesheet" href="css/style.css">
 <style>
-* { margin: 0; padding: 0; box-sizing: border-box; }
-body { background: #0a0a0a; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; font-family: 'Courier New', monospace; color: #0f0; overflow: hidden; }
-canvas { border: 2px solid #0f0; }
-#ui { position: fixed; top: 10px; left: 0; right: 0; display: flex; justify-content: space-between; padding: 0 20px; z-index: 10; }
-#ui span { color: #0f0; font-size: 18px; }
-#msg { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); color: #0ff; font-size: 14px; text-align: center; pointer-events: none; opacity: 0; transition: opacity 0.5s; }
-#msg.show { opacity: 1; }
-#mute { position: fixed; top: 10px; right: 10px; background: none; border: 1px solid #0f0; color: #0f0; padding: 4px 10px; cursor: pointer; font-family: inherit; font-size: 14px; z-index: 20; }
-#start { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); color: #0f0; font-size: 24px; z-index: 15; cursor: pointer; }
+.game-canvas-container { background: #0a0a0a; }
+canvas { border: 2px solid #0f0; display: block; }
+#gameUI { position: absolute; top: 10px; left: 0; right: 0; display: flex; justify-content: space-between; padding: 0 20px; z-index: 10; }
+#gameUI span { color: #0f0; font-size: 18px; font-family: 'Courier New', monospace; }
+#gameMsg { position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%); color: #0ff; font-size: 14px; text-align: center; pointer-events: none; opacity: 0; transition: opacity 0.5s; white-space: nowrap; }
+#gameMsg.show { opacity: 1; }
+#muteBtn { position: absolute; top: 10px; right: 10px; background: none; border: 1px solid #0f0; color: #0f0; padding: 4px 10px; cursor: pointer; font-family: 'Courier New', monospace; font-size: 14px; z-index: 20; }
+#gameStart { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: #0f0; font-size: 24px; z-index: 15; font-family: 'Courier New', monospace; cursor: pointer; }
 </style>
 </head>
 <body>
-<div id="ui"><span id="score">0 - 0</span></div>
-<button id="mute">🔊</button>
-<div id="start">PRESS SPACE TO PLAY</div>
-<div id="msg"></div>
-<canvas id="c" width="800" height="500"></canvas>
+<nav></nav>
+<main>
+  <div class="game-wrapper">
+    <div class="game-header">
+      <h1 style="font-family:'Press Start 2P',monospace;color:#00ff00;">🏓 PONG</h1>
+    </div>
+    <div class="game-canvas-container" style="position:relative;">
+      <div id="gameUI"><span id="score">0 - 0</span></div>
+      <button id="muteBtn">🔊</button>
+      <div id="gameStart">PRESS SPACE TO PLAY</div>
+      <div id="gameMsg"></div>
+      <canvas id="c" width="800" height="500"></canvas>
+    </div>
+    <div class="game-info">
+      <span>YOU: <strong id="pScore">0</strong></span>
+      <span>AI: <strong id="aScoreDisplay">0</strong></span>
+    </div>
+    <div class="game-controls">
+      <h3>CONTROLS</h3>
+      <ul>
+        <li><kbd>SPACE</kbd> — Start</li>
+        <li><kbd>↑</kbd> <kbd>↓</kbd> — Move paddle</li>
+        <li>First to 5 wins!</li>
+      </ul>
+    </div>
+  </div>
+</main>
+<footer><p>👾 Arcade Zone — A School CS Project</p></footer>
+<script src="js/auth.js"></script>
+<script src="js/api.js"></script>
+<script src="js/common.js"></script>
 <script>
 const c = document.getElementById('c'), ctx = c.getContext('2d');
 let muted = false;
-document.getElementById('mute').onclick = () => { muted = !muted; document.getElementById('mute').textContent = muted ? '🔇' : '🔊'; };
-
-const audio = {
-  play(name) { if (muted) return; const a = new Audio('audio/' + name + '.mp3'); a.play().catch(()=>{}); }
-};
+document.getElementById('muteBtn').onclick = () => { muted = !muted; document.getElementById('muteBtn').textContent = muted ? '🔇' : '🔊'; };
+const audio = { play(name) { if (muted) return; const a = new Audio('audio/' + name + '.mp3'); a.play().catch(()=>{}); } };
 
 const W = 800, H = 500;
 let player = { y: 200, h: 80, w: 10, x: 20 }, ai = { y: 200, h: 80, w: 10, x: 770 };
@@ -37,16 +60,20 @@ let ball = { x: 400, y: 250, vx: 4, vy: 3, r: 6 };
 let pScore = 0, aScore = 0, started = false, gameOver = false, msgTimer = 0;
 
 function showMsg(text, dur = 3000) {
-  const el = document.getElementById('msg');
+  const el = document.getElementById('gameMsg');
   el.textContent = text; el.classList.add('show');
-  clearTimeout(msgTimer);
-  msgTimer = setTimeout(() => el.classList.remove('show'), dur);
+  clearTimeout(msgTimer); msgTimer = setTimeout(() => el.classList.remove('show'), dur);
+}
+
+async function submitScore(s) {
+  const user = Auth.getCurrentUser();
+  if (user && s > 0) await Api.addScore('pong', s, user.username);
 }
 
 document.addEventListener('keydown', e => {
   if (e.code === 'Space' && !started) {
     started = true;
-    document.getElementById('start').style.display = 'none';
+    document.getElementById('gameStart').style.display = 'none';
     audio.play('pong-start');
     showMsg('"Building connections one pixel at a time"');
   }
@@ -79,8 +106,20 @@ function update() {
   if (ball.x + ball.r > ai.x && ball.y > ai.y && ball.y < ai.y + ai.h) {
     ball.vx = -Math.abs(ball.vx) * 1.05; ball.vy += (ball.y - (ai.y + ai.h/2)) * 0.1;
   }
-  if (ball.x < 0) { aScore++; document.getElementById('score').textContent = pScore + ' - ' + aScore; reset(); if (aScore >= 5) { gameOver = true; showMsg('"That\'s what happens when you don\'t iterate"', 5000); audio.play('pong-gameover'); } }
-  if (ball.x > W) { pScore++; document.getElementById('score').textContent = pScore + ' - ' + aScore; reset(); if (pScore >= 5) { gameOver = true; showMsg('You win! Mark would be proud... or concerned.', 5000); } }
+  if (ball.x < 0) {
+    aScore++;
+    document.getElementById('score').textContent = pScore + ' - ' + aScore;
+    document.getElementById('aScoreDisplay').textContent = aScore;
+    reset();
+    if (aScore >= 5) { gameOver = true; showMsg('"That\'s what happens when you don\'t iterate"', 5000); audio.play('pong-gameover'); submitScore(pScore * 100); }
+  }
+  if (ball.x > W) {
+    pScore++;
+    document.getElementById('score').textContent = pScore + ' - ' + aScore;
+    document.getElementById('pScore').textContent = pScore;
+    reset();
+    if (pScore >= 5) { gameOver = true; showMsg('You win! Mark would be proud... or concerned.', 5000); submitScore(pScore * 100); }
+  }
   if (Math.abs(ball.vx) > 12) ball.vx = 12 * Math.sign(ball.vx);
 }
 
@@ -91,9 +130,13 @@ function draw() {
   ctx.fillStyle = '#0f0'; ctx.fillRect(player.x, player.y, player.w, player.h);
   ctx.fillRect(ai.x, ai.y, ai.w, ai.h);
   ctx.beginPath(); ctx.arc(ball.x, ball.y, ball.r, 0, Math.PI*2); ctx.fill();
+  if (gameOver) {
+    ctx.fillStyle = '#0f0'; ctx.font = '36px Courier New'; ctx.textAlign = 'center';
+    ctx.fillText(pScore >= 5 ? 'YOU WIN!' : 'GAME OVER', W/2, H/2);
+  }
 }
 
-function loop() { update(); draw(); if (!gameOver) requestAnimationFrame(loop); }
+function loop() { update(); draw(); if (!gameOver) requestAnimationFrame(loop); else { draw(); } }
 requestAnimationFrame(loop);
 </script>
 </body>

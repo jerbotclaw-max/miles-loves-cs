@@ -15,6 +15,10 @@
       <button class="filter-btn" onclick="filterScores('tetris')">TETRIS</button>
       <button class="filter-btn" onclick="filterScores('asteroids')">ASTEROIDS</button>
       <button class="filter-btn" onclick="filterScores('galaga')">GALAGA</button>
+      <button class="filter-btn" onclick="filterScores('snake')">SNAKE</button>
+      <button class="filter-btn" onclick="filterScores('breakout')">BREAKOUT</button>
+      <button class="filter-btn" onclick="filterScores('flappy')">FLAPPY</button>
+      <button class="filter-btn" onclick="filterScores('pong')">PONG</button>
     </div>
     <table class="scores-table">
       <thead>
@@ -26,7 +30,9 @@
           <th>DATE</th>
         </tr>
       </thead>
-      <tbody id="scoresBody"></tbody>
+      <tbody id="scoresBody">
+        <tr><td colspan="5" style="text-align:center;color:var(--text-secondary);padding:2rem;">Loading scores...</td></tr>
+      </tbody>
     </table>
     <div id="noScores" class="board-empty" style="display:none;">No scores yet. Go play something!</div>
   </main>
@@ -34,10 +40,17 @@
     <p>👾 Arcade Zone — A School CS Project</p>
   </footer>
   <script src="js/auth.js"></script>
+  <script src="js/api.js"></script>
   <script src="js/scores.js"></script>
   <script src="js/common.js"></script>
   <script>
     let currentFilter = 'all';
+
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
 
     function filterScores(game) {
       currentFilter = game;
@@ -47,12 +60,13 @@
       renderScores();
     }
 
-    function renderScores() {
+    async function renderScores() {
       const tbody = document.getElementById('scoresBody');
       const noEl = document.getElementById('noScores');
+
       let scores = currentFilter === 'all'
-        ? Scores.getAllScores()
-        : Scores.getScoresForGame(currentFilter);
+        ? await Scores.getScoresSorted()
+        : await Scores.getScoresForGame(currentFilter);
 
       if (scores.length === 0) {
         tbody.innerHTML = '';
@@ -72,12 +86,6 @@
           <td>${Scores.formatDate(s.date)}</td>
         </tr>`;
       }).join('');
-    }
-
-    function escapeHtml(text) {
-      const div = document.createElement('div');
-      div.textContent = text;
-      return div.innerHTML;
     }
 
     renderScores();
