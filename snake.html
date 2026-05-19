@@ -10,10 +10,10 @@
 canvas { border: 2px solid #0f0; display: block; }
 #gameScore { position: absolute; top: 10px; left: 20px; font-size: 18px; color: #0f0; font-family: 'Courier New', monospace; }
 #gameHigh { position: absolute; top: 10px; right: 20px; font-size: 18px; color: #0f0; font-family: 'Courier New', monospace; }
-#gameMsg { position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%); color: #0f0; font-size: 14px; text-align: center; pointer-events: none; opacity: 0; transition: opacity 0.5s; white-space: nowrap; }
+#gameMsg { position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%); color: #0f0; font-size: 11px; text-align: center; pointer-events: none; opacity: 0; transition: opacity 0.5s; white-space: nowrap; font-family: 'Press Start 2P', monospace; }
 #gameMsg.show { opacity: 1; }
 #muteBtn { position: absolute; top: 10px; right: 150px; background: none; border: 1px solid #0f0; color: #0f0; padding: 4px 10px; cursor: pointer; font-family: 'Courier New', monospace; font-size: 14px; z-index: 20; }
-#gameStart { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: #0f0; font-size: 24px; z-index: 15; font-family: 'Courier New', monospace; }
+#gameStart { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: #0f0; font-size: 16px; z-index: 15; font-family: 'Press Start 2P', monospace; }
 </style>
 </head>
 <body>
@@ -101,7 +101,7 @@ function update(ts) {
     if (score > high) high = score;
     document.getElementById('gameHigh').textContent = 'Best: ' + high;
     audio.play('snake-death');
-    showMsg('"Sustainable growth is hard"', 4000);
+    showMsg('Game Over! Score: ' + score, 4000);
     submitScore(score);
     return;
   }
@@ -111,7 +111,7 @@ function update(ts) {
     document.getElementById('gameScore').textContent = 'Score: ' + score;
     document.getElementById('infoScore').textContent = score;
     placeFood();
-    if (score % 50 === 0) { audio.play('snake-score'); showMsg('"Every pixel matters at scale"', 3000); }
+    if (score % 50 === 0) { audio.play('snake-score'); showMsg('Nice streak! +50', 3000); }
   } else { snake.pop(); }
 }
 

@@ -24,7 +24,7 @@
           <canvas id="gameCanvas" width="250" height="500"></canvas>
           <div class="game-start-overlay" id="overlay">
             <h2>TETRIS</h2>
-            <p>PRESS ENTER TO START</p>
+            <p>PRESS SPACE TO START</p>
           </div>
         </div>
 
@@ -381,11 +381,11 @@
 
     document.addEventListener('keydown', (e) => {
       if (!started) {
-        if (e.key === 'Enter') { init(); }
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); init(); }
         return;
       }
       if (gameOver) {
-        if (e.key === 'Enter') init();
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); init(); }
         return;
       }
       if (e.key === 'p' || e.key === 'P') { paused = !paused; return; }

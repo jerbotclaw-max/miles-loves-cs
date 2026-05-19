@@ -9,10 +9,10 @@
 .game-canvas-container { background: #0a0a0a; }
 canvas { border: 2px solid #ff0; display: block; }
 #gameScore { position: absolute; top: 10px; left: 20px; font-size: 18px; color: #ff0; font-family: 'Courier New', monospace; }
-#gameMsg { position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%); color: #ff0; font-size: 14px; text-align: center; pointer-events: none; opacity: 0; transition: opacity 0.5s; white-space: nowrap; }
+#gameMsg { position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%); color: #ff0; font-size: 11px; text-align: center; pointer-events: none; opacity: 0; transition: opacity 0.5s; white-space: nowrap; font-family: 'Press Start 2P', monospace; }
 #gameMsg.show { opacity: 1; }
 #muteBtn { position: absolute; top: 10px; right: 20px; background: none; border: 1px solid #ff0; color: #ff0; padding: 4px 10px; cursor: pointer; font-family: 'Courier New', monospace; font-size: 14px; z-index: 20; }
-#gameStart { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: #ff0; font-size: 24px; z-index: 15; font-family: 'Courier New', monospace; }
+#gameStart { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: #ff0; font-size: 16px; z-index: 15; font-family: 'Press Start 2P', monospace; }
 </style>
 </head>
 <body>
@@ -96,7 +96,7 @@ function update() {
       if (bird.y - bird.r < p.top || bird.y + bird.r > p.top + GAP) {
         gameOver = true;
         audio.play('flappy-death');
-        showMsg('"Friction in product development"', 4000);
+        showMsg('Game Over! Score: ' + score, 4000);
         submitScore(score);
         return;
       }
@@ -105,12 +105,12 @@ function update() {
       p.scored = true; score++;
       document.getElementById('gameScore').textContent = 'Score: ' + score;
       document.getElementById('infoScore').textContent = score;
-      if (score % 10 === 0) showMsg('"I\'m committed to removing barriers like this pipe"', 3000);
+      if (score % 10 === 0) showMsg('Score: ' + score + '!', 3000);
     }
   }
   if (bird.y > H || bird.y < 0) {
     gameOver = true; audio.play('flappy-death');
-    showMsg('"Friction in product development"', 4000);
+    showMsg('Game Over! Score: ' + score, 4000);
     submitScore(score);
   }
 }

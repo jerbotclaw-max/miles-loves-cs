@@ -10,10 +10,10 @@
 canvas { border: 2px solid #0f0; display: block; }
 #gameUI { position: absolute; top: 10px; left: 0; right: 0; display: flex; justify-content: space-between; padding: 0 20px; z-index: 10; }
 #gameUI span { color: #0f0; font-size: 18px; font-family: 'Courier New', monospace; }
-#gameMsg { position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%); color: #0ff; font-size: 14px; text-align: center; pointer-events: none; opacity: 0; transition: opacity 0.5s; white-space: nowrap; }
+#gameMsg { position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%); color: #0ff; font-size: 11px; text-align: center; pointer-events: none; opacity: 0; transition: opacity 0.5s; white-space: nowrap; font-family: 'Press Start 2P', monospace; }
 #gameMsg.show { opacity: 1; }
 #muteBtn { position: absolute; top: 10px; right: 10px; background: none; border: 1px solid #0f0; color: #0f0; padding: 4px 10px; cursor: pointer; font-family: 'Courier New', monospace; font-size: 14px; z-index: 20; }
-#gameStart { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: #0f0; font-size: 24px; z-index: 15; font-family: 'Courier New', monospace; cursor: pointer; }
+#gameStart { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: #0f0; font-size: 16px; z-index: 15; font-family: 'Press Start 2P', monospace; cursor: pointer; }
 </style>
 </head>
 <body>
@@ -75,7 +75,7 @@ document.addEventListener('keydown', e => {
     started = true;
     document.getElementById('gameStart').style.display = 'none';
     audio.play('pong-start');
-    showMsg('"Building connections one pixel at a time"');
+    showMsg('Game started! First to 5 wins.');
   }
 });
 
@@ -111,14 +111,14 @@ function update() {
     document.getElementById('score').textContent = pScore + ' - ' + aScore;
     document.getElementById('aScoreDisplay').textContent = aScore;
     reset();
-    if (aScore >= 5) { gameOver = true; showMsg('"That\'s what happens when you don\'t iterate"', 5000); audio.play('pong-gameover'); submitScore(pScore * 100); }
+    if (aScore >= 5) { gameOver = true; showMsg('AI wins! ' + pScore + '-' + aScore, 5000); audio.play('pong-gameover'); submitScore(pScore * 100); }
   }
   if (ball.x > W) {
     pScore++;
     document.getElementById('score').textContent = pScore + ' - ' + aScore;
     document.getElementById('pScore').textContent = pScore;
     reset();
-    if (pScore >= 5) { gameOver = true; showMsg('You win! Mark would be proud... or concerned.', 5000); submitScore(pScore * 100); }
+    if (pScore >= 5) { gameOver = true; showMsg('You win! ' + pScore + '-' + aScore, 5000); submitScore(pScore * 100); }
   }
   if (Math.abs(ball.vx) > 12) ball.vx = 12 * Math.sign(ball.vx);
 }

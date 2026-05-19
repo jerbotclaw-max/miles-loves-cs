@@ -10,10 +10,10 @@
 canvas { border: 2px solid #f0f; display: block; }
 #gameScore { position: absolute; top: 10px; left: 20px; font-size: 18px; color: #f0f; font-family: 'Courier New', monospace; }
 #gameLives { position: absolute; top: 10px; right: 20px; font-size: 18px; color: #f0f; font-family: 'Courier New', monospace; }
-#gameMsg { position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%); color: #f0f; font-size: 14px; text-align: center; pointer-events: none; opacity: 0; transition: opacity 0.5s; white-space: nowrap; }
+#gameMsg { position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%); color: #f0f; font-size: 11px; text-align: center; pointer-events: none; opacity: 0; transition: opacity 0.5s; white-space: nowrap; font-family: 'Press Start 2P', monospace; }
 #gameMsg.show { opacity: 1; }
 #muteBtn { position: absolute; top: 10px; right: 100px; background: none; border: 1px solid #f0f; color: #f0f; padding: 4px 10px; cursor: pointer; font-family: 'Courier New', monospace; font-size: 14px; z-index: 20; }
-#gameStart { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: #f0f; font-size: 24px; z-index: 15; font-family: 'Courier New', monospace; }
+#gameStart { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: #f0f; font-size: 16px; z-index: 15; font-family: 'Press Start 2P', monospace; }
 </style>
 </head>
 <body>
@@ -81,7 +81,7 @@ function init() {
 
 document.addEventListener('keydown', e => {
   if (e.code === 'Space') {
-    if (!started) { started = true; document.getElementById('gameStart').style.display = 'none'; audio.play('breakout-start'); showMsg('"Breaking through barriers is in our DNA"'); init(); }
+    if (!started) { started = true; document.getElementById('gameStart').style.display = 'none'; audio.play('breakout-start'); init(); }
     else if (gameOver || won) init();
   }
 });
@@ -101,7 +101,7 @@ function update() {
   if (ball.y + ball.r > H) {
     lives--;
     document.getElementById('gameLives').textContent = '❤️'.repeat(lives);
-    if (lives <= 0) { gameOver = true; audio.play('breakout-gameover'); showMsg('"Every brick is a market we haven\'t entered yet"', 5000); submitScore(score); return; }
+    if (lives <= 0) { gameOver = true; audio.play('breakout-gameover'); showMsg('Game Over! Score: ' + score, 5000); submitScore(score); return; }
     ball.x = paddle.x + paddle.w/2; ball.y = H - 50; ball.vx = 4; ball.vy = -4;
   }
 
@@ -118,7 +118,7 @@ function update() {
       document.getElementById('gameScore').textContent = 'Score: ' + score;
       document.getElementById('infoScore').textContent = score;
       ball.vy *= -1;
-      if (bricks.every(br => !br.alive)) { won = true; showMsg('You win! Every market conquered.', 5000); submitScore(score); }
+      if (bricks.every(br => !br.alive)) { won = true; showMsg('You win! Score: ' + score, 5000); submitScore(score); }
       break;
     }
   }
